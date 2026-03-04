@@ -14,8 +14,8 @@ export const experienceSchema = z.object({
     company: z.string().min(1, "Company is required"),
     position: z.string().min(1, "Position is required"),
     startDate: z.string().min(1, "Start date is required"),
-    endDate: z.string().optional(),
-    current: z.boolean().default(false),
+    endDate: z.string().optional().or(z.literal('')),
+    current: z.boolean().optional(),
     description: z.string().min(10, "Please provide at least a brief description of what you did"),
 });
 
@@ -25,7 +25,7 @@ export const educationSchema = z.object({
     degree: z.string().min(1, "Degree is required"),
     fieldOfStudy: z.string().min(1, "Field of study is required"),
     startDate: z.string().min(1, "Start date is required"),
-    endDate: z.string().optional(),
+    endDate: z.string().optional().or(z.literal('')),
 });
 
 export const resumeFormSchema = z.object({
