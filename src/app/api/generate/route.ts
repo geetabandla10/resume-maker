@@ -3,6 +3,8 @@ import { openai } from '@/lib/openRouterClient';
 import { supabase } from '@/lib/supabaseClient';
 import { resumeFormSchema } from '@/types/resume';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
     try {
         const body = await req.json();
