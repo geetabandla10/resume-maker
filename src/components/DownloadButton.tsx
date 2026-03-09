@@ -23,43 +23,54 @@ export default function DownloadButton({ targetId, fileName = 'resume' }: Downlo
                 return;
             }
 
-            const canvas = await html2canvas(element, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff',
-                logging: false,
-            });
+            // Scroll to top to ensure html2canvas captures correctly from the start
+            const scrollX = window.scrollX;
+            const scrollY = window.scrollY;
+            window.scrollTo(0, 0);
 
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'px',
-                format: 'a4',
-            });
+            try {
+                const canvas = await html2canvas(element, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    logging: true, // Enable logging for production diagnostics
+                    allowTaint: true,
+                });
 
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const canvasRatio = canvas.height / canvas.width;
-            const imgWidth = pdfWidth;
-            const imgHeight = pdfWidth * canvasRatio;
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'px',
+                    format: 'a4',
+                });
 
-            let heightLeft = imgHeight;
-            let position = 0;
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+                const canvasRatio = canvas.height / canvas.width;
+                const imgWidth = pdfWidth;
+                const imgHeight = pdfWidth * canvasRatio;
 
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pdfHeight;
+                let heightLeft = imgHeight;
+                let position = 0;
 
-            while (heightLeft > 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
                 pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
                 heightLeft -= pdfHeight;
-            }
 
-            pdf.save(`${fileName}.pdf`);
-        } catch (err) {
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pdfHeight;
+                }
+
+                pdf.save(`${fileName}.pdf`);
+            } finally {
+                // Restore scroll position
+                window.scrollTo(scrollX, scrollY);
+            }
+        } catch (err: any) {
             console.error('Failed to generate PDF:', err);
-            alert('PDF generation failed. Please try again.');
+            alert(`PDF generation failed: ${err.message || 'Unknown error'}. Please try again.`);
         } finally {
             setIsDownloading(false);
         }
