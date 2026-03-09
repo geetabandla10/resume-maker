@@ -30,9 +30,10 @@ export const educationSchema = z.object({
 
 export const resumeFormSchema = z.object({
     personalInfo: personalInfoSchema,
-    experience: z.array(experienceSchema).min(1, "At least one experience is required"),
+    experience: z.array(experienceSchema),
     education: z.array(educationSchema).min(1, "At least one education entry is required"),
     skills: z.string().min(1, "Please list at least a few skills (comma separated)"),
+    templateId: z.string(),
 });
 
 export type ResumeFormData = z.infer<typeof resumeFormSchema>;

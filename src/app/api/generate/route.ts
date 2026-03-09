@@ -12,8 +12,11 @@ export async function POST(req: Request) {
         // Validate request body
         const parsedData = resumeFormSchema.parse(body);
 
-        const systemPrompt = `You are an expert resume writer and career coach. Your job is to take raw user input about their work experience and skills, and generate a polished, highly professional resume. 
-Enhance the work experience descriptions into powerful, action-oriented bullet points (using strong verbs, quantifying results where possible).
+        const systemPrompt = `You are an expert resume writer and career coach. Your job is to take raw user input about their education, work experience (if any), and skills, and generate a polished, highly professional resume. 
+
+If the user has provided work experience, enhance the descriptions into powerful, action-oriented bullet points (using strong verbs, quantifying results where possible).
+If the user HAS NOT provided work experience (e.g., they are a student or fresher), focus heavily on their education, academic projects, and skills to create a compelling entry-level profile.
+
 Generate a compelling professional summary based on the user's overall profile.
 
 Output your response ONLY as a JSON object matching this structure exactly:
@@ -32,29 +35,80 @@ Output your response ONLY as a JSON object matching this structure exactly:
 
         const userPrompt = `Here is the user's data:
 Personal Info: ${JSON.stringify(parsedData.personalInfo)}
-Experience: ${JSON.stringify(parsedData.experience)}
+Experience: ${parsedData.experience && parsedData.experience.length > 0 ? JSON.stringify(parsedData.experience) : "None provided (Student/Fresher profile)"}
 Education: ${JSON.stringify(parsedData.education)}
 Skills: ${parsedData.skills}
 
-Please process this data and provide the JSON output.`;
+Please process this data and provide the JSON output. If Experience is "None provided", return an empty array for "enhancedExperience".`;
 
-        // Call OpenRouter API via OpenAI SDK
-        const completion = await openai.chat.completions.create({
-            model: 'google/gemini-2.0-flash-001',
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt }
-            ],
-            response_format: { type: 'json_object' }
-        });
+        // Try generation with a more stable free model
+        let completion;
+        const models = [
+            'google/gemma-3-12b-it:free',
+            'mistralai/mistral-7b-instruct:free',
+            'meta-llama/llama-3.3-70b-instruct:free',
+            'google/gemini-2.0-flash-exp:free',
+            'qwen/qwen-2.5-72b-instruct:free',
+            'openrouter/free'
+        ];
 
-        const aiContent = completion.choices[0]?.message?.content;
+        let aiContent = '';
+        let errorDetails = '';
 
-        if (!aiContent) {
-            throw new Error("Failed to generate AI content");
+        for (const model of models) {
+            try {
+                console.log(`Attempting generation with model: ${model}`);
+                completion = await openai.chat.completions.create({
+                    model: model,
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    // Not all models support json_object, so we parse it manually
+                    // response_format: { type: 'json_object' } 
+                }, { timeout: 15000 }); // Increased timeout slightly
+
+                aiContent = completion.choices[0]?.message?.content || '';
+                if (aiContent) {
+                    console.log(`Success with model: ${model}`);
+                    break;
+                }
+            } catch (err: any) {
+                console.error(`Error with model ${model}:`, err.message);
+                errorDetails += `${model}: ${err.message}; `;
+                continue;
+            }
         }
 
-        const generatedResume = JSON.parse(aiContent);
+        if (!aiContent) {
+            throw new Error(`AI Generation failed with all attempted models. Errors: ${errorDetails}`);
+        }
+
+        // Robust JSON extraction and repair
+        let generatedResume;
+        try {
+            // Find the first '{' and last '}' to extract the JSON object
+            const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+            let jsonString = jsonMatch ? jsonMatch[0] : aiContent;
+
+            // Simple repair for truncated JSON
+            const openBraces = (jsonString.match(/\{/g) || []).length;
+            const closeBraces = (jsonString.match(/\}/g) || []).length;
+            const openBrackets = (jsonString.match(/\[/g) || []).length;
+            const closeBrackets = (jsonString.match(/\]/g) || []).length;
+
+            if (openBrackets > closeBrackets) {
+                jsonString += ' ]'.repeat(openBrackets - closeBrackets);
+            }
+            if (openBraces > closeBraces) {
+                jsonString += ' }'.repeat(openBraces - closeBraces);
+            }
+
+            generatedResume = JSON.parse(jsonString);
+        } catch (parseError) {
+            console.error('JSON Parse Error. Content:', aiContent);
+            throw new Error('Failed to parse AI response as JSON');
+        }
 
         // Save to Supabase
         const { data: insertedData, error: dbError } = await supabase
@@ -65,6 +119,7 @@ Please process this data and provide the JSON output.`;
                     experience: parsedData.experience,
                     education: parsedData.education,
                     skills: parsedData.skills.split(',').map(s => s.trim()),
+                    template_id: parsedData.templateId,
                     generated_content: generatedResume
                 }
             ])

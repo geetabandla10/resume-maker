@@ -3,45 +3,127 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Header from '@/components/Header';
-import ResumePreview from '@/components/ResumePreview';
-import { Loader2 } from 'lucide-react';
-import { useParams } from 'next/navigation';
+import LivePreviewEditor, { LiveResumeData } from '@/components/LivePreviewEditor';
+import { Loader2, ArrowLeft } from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
+
+function buildLiveData(raw: any): LiveResumeData {
+    // Normalise from the Supabase row format to the LiveResumeData format
+    const personalInfo = raw.personal_info || {};
+    const generatedContent = raw.generated_content || {};
+
+    // Experience: prefer generated_content.enhancedExperience, fall back to raw.experience
+    const rawExp: any[] = raw.experience || [];
+    const enhancedExp: any[] = generatedContent.enhancedExperience || rawExp;
+
+    const experience = rawExp.map((exp: any, i: number) => ({
+        company: exp.company || enhancedExp[i]?.company || '',
+        position: exp.position || enhancedExp[i]?.position || '',
+        startDate: exp.startDate || enhancedExp[i]?.startDate || '',
+        endDate: exp.endDate || enhancedExp[i]?.endDate || '',
+        bullets: enhancedExp[i]?.bullets || (exp.description ? exp.description.split('\n').filter(Boolean) : []),
+    }));
+
+    const education = (raw.education || []).map((edu: any) => ({
+        institution: edu.institution || '',
+        degree: edu.degree || '',
+        fieldOfStudy: edu.fieldOfStudy || '',
+        startDate: edu.startDate || '',
+        endDate: edu.endDate || '',
+    }));
+
+    const rawSkills = raw.skills;
+    const skills: string[] = Array.isArray(rawSkills)
+        ? rawSkills
+        : typeof rawSkills === 'string'
+            ? rawSkills.split(',').map((s: string) => s.trim()).filter(Boolean)
+            : [];
+
+    return {
+        personalInfo: {
+            fullName: personalInfo.fullName || '',
+            email: personalInfo.email || '',
+            phone: personalInfo.phone || '',
+            location: personalInfo.location || '',
+            website: personalInfo.website || '',
+            linkedin: personalInfo.linkedin || '',
+            summary: generatedContent.summary || '',
+        },
+        experience,
+        education,
+        skills,
+        generated_content: {
+            summary: generatedContent.summary || '',
+            enhancedExperience: enhancedExp.map((exp: any, i: number) => ({
+                ...exp,
+                bullets: experience[i]?.bullets || exp.bullets || [],
+            })),
+        },
+        personal_info: personalInfo,
+        template_id: raw.template_id,
+    };
+}
 
 export default function ResumePage() {
     const params = useParams();
+    const router = useRouter();
     const id = params.id as string;
-    const [resumeData, setResumeData] = useState<any>(null);
+    const [resumeData, setResumeData] = useState<LiveResumeData | null>(null);
+    const [templateId, setTemplateId] = useState('standard');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         async function fetchResume() {
             if (!id) return;
-
             const { data, error: sbError } = await supabase
                 .from('resumes')
                 .select('*')
                 .eq('id', id)
                 .single();
 
-            if (sbError) {
+            if (sbError || !data) {
                 setError('Resume not found or there was an error loading it.');
                 console.error(sbError);
             } else {
-                setResumeData(data);
+                setResumeData(buildLiveData(data));
+                setTemplateId(data.template_id || 'standard');
             }
             setLoading(false);
         }
-
         fetchResume();
     }, [id]);
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+            <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
                 <Header />
-                <main className="flex-1 flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+                <main className="flex-1 py-10">
+                    <div className="container mx-auto px-4 max-w-[1400px]">
+                        <div className="flex items-center justify-between mb-8">
+                            <div className="h-10 w-48 bg-slate-200 rounded-lg animate-pulse" />
+                            <div className="h-10 w-32 bg-slate-200 rounded-full animate-pulse" />
+                        </div>
+                        <div className="flex flex-col lg:flex-row gap-8">
+                            <div className="w-full lg:w-[380px] h-[700px] bg-white rounded-2xl border border-slate-100 p-6 space-y-6">
+                                <div className="h-8 w-full bg-slate-50 rounded animate-pulse" />
+                                <div className="space-y-3">
+                                    {[1, 2, 3, 4, 5].map(i => (
+                                        <div key={i} className="h-12 w-full bg-slate-50 rounded-lg animate-pulse" />
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="flex-1 h-[900px] bg-white rounded shadow-sm p-12 space-y-8">
+                                <div className="h-16 w-1/3 bg-slate-50 rounded mx-auto animate-pulse" />
+                                <div className="h-4 w-1/4 bg-slate-50 rounded mx-auto animate-pulse" />
+                                <div className="space-y-4 pt-10">
+                                    {[1, 2, 3, 4, 5, 6].map(i => (
+                                        <div key={i} className="h-4 w-full bg-slate-50 rounded animate-pulse" />
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </main>
             </div>
         );
@@ -54,7 +136,10 @@ export default function ResumePage() {
                 <main className="flex-1 flex items-center justify-center p-6 text-center">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900 mb-2">Oops!</h1>
-                        <p className="text-gray-600">{error || 'Something went wrong.'}</p>
+                        <p className="text-gray-600 mb-6">{error || 'Something went wrong.'}</p>
+                        <button onClick={() => router.push('/create')} className="text-indigo-600 font-semibold hover:underline">
+                            Create a new resume →
+                        </button>
                     </div>
                 </main>
             </div>
@@ -62,26 +147,40 @@ export default function ResumePage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-200 flex flex-col font-sans print:bg-white">
-            <div className="print:hidden">
-                <Header />
-            </div>
+        <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+            <Header />
 
-            <main className="flex-1 py-10 print:py-0">
-                <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 print:max-w-none print:px-0">
-                    <div className="mb-6 flex items-center justify-between print:hidden">
-                        <h1 className="text-2xl font-bold text-gray-900">Your Generated Resume</h1>
-                        <button
-                            onClick={() => window.print()}
-                            className="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors"
-                        >
-                            Export PDF (Print)
-                        </button>
+            <main className="flex-1 py-8 print:py-0">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-[1400px]">
+                    {/* Page header */}
+                    <div className="flex items-center justify-between mb-8 print:hidden">
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => router.push('/create')}
+                                className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                            >
+                                <ArrowLeft className="h-4 w-4" />
+                                Back to Builder
+                            </button>
+                            <div className="h-4 w-px bg-gray-200" />
+                            <h1 className="text-2xl font-bold text-gray-900">Your Resume</h1>
+                        </div>
                     </div>
 
-                    <div className="bg-white shadow-2xl print:shadow-none mx-auto print:mx-0 overflow-hidden" style={{ minHeight: '1122px', maxWidth: '794px' }}>
-                        {/* A4 roughly 210x297mm -> 794x1122px at 96dpi */}
-                        <ResumePreview data={resumeData} />
+                    {/* Live editor */}
+                    <div className="print:hidden">
+                        <LivePreviewEditor
+                            initialData={resumeData}
+                            initialTemplateId={templateId}
+                            resumeId={id}
+                        />
+                    </div>
+
+                    {/* Print only area */}
+                    <div className="hidden print:block">
+                        <div id="resume-printable-area">
+                            {/* Template will be rendered inside LivePreviewEditor already */}
+                        </div>
                     </div>
                 </div>
             </main>

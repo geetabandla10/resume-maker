@@ -14,6 +14,9 @@ export default function Header() {
                     </span>
                 </Link>
                 <nav className="flex items-center gap-4">
+                    <Link href="/templates" className="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors hidden sm:block">
+                        Templates
+                    </Link>
                     <Link href="/create" className="group flex items-center justify-center gap-2 rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-md shadow-indigo-200 transition-all hover:bg-indigo-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                         <Sparkles className="h-4 w-4 transition-transform group-hover:scale-110" />
                         Build Resume

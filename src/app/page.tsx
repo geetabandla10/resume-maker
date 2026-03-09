@@ -18,17 +18,17 @@ export default function Home() {
 
           <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <div className="mx-auto max-w-3xl">
-              <span className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20 mb-8">
+              <span className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20 mb-8 animate-fade-in-up stagger-1">
                 <Sparkles className="h-4 w-4" />
                 Powered by Advanced AI
               </span>
-              <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-6xl mb-6">
+              <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-6xl mb-6 animate-fade-in-up stagger-2">
                 Craft the Perfect Resume in <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Seconds</span>
               </h1>
-              <p className="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+              <p className="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto animate-fade-in-up stagger-3">
                 Transform your professional experience into a polished, recruiter-ready resume. Provide your details, and our AI will generate highly impactful bullet points and summaries tailored just for you.
               </p>
-              <div className="mt-10 flex items-center justify-center gap-x-6">
+              <div className="mt-10 flex items-center justify-center gap-x-6 animate-fade-in-up stagger-4">
                 <Link
                   href="/create"
                   className="group rounded-full bg-indigo-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-200 transition-all hover:bg-indigo-700 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 flex items-center gap-2"

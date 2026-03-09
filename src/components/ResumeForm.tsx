@@ -4,11 +4,14 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2, Loader2, Sparkles, CheckCircle } from 'lucide-react';
 import { resumeFormSchema, ResumeFormData } from '@/types/resume';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { createClient } from '@/lib/supabaseBrowser';
+import TemplateSelector from './TemplateSelector';
 
 export default function ResumeForm() {
     const router = useRouter();
+    const supabase = createClient();
     const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -16,6 +19,9 @@ export default function ResumeForm() {
         register,
         control,
         handleSubmit,
+        watch,
+        setValue,
+        reset,
         formState: { errors },
     } = useForm<ResumeFormData>({
         resolver: zodResolver(resumeFormSchema),
@@ -23,15 +29,42 @@ export default function ResumeForm() {
             personalInfo: {
                 fullName: '', email: '', phone: '', location: '', website: '', linkedin: ''
             },
-            experience: [
-                { id: crypto.randomUUID(), company: '', position: '', startDate: '', endDate: '', current: false, description: '' }
-            ],
             education: [
                 { id: crypto.randomUUID(), institution: '', degree: '', fieldOfStudy: '', startDate: '', endDate: '' }
             ],
             skills: '',
+            templateId: 'standard',
+            experience: [],
         }
     });
+
+    const searchParams = useSearchParams();
+    const editId = searchParams.get('edit');
+
+    useEffect(() => {
+        if (editId) {
+            const fetchExisting = async () => {
+                const { data, error } = await supabase
+                    .from('resumes')
+                    .select('*')
+                    .eq('id', editId)
+                    .single();
+
+                if (data && !error) {
+                    reset({
+                        personalInfo: data.personal_info,
+                        experience: data.experience || [],
+                        education: data.education || [],
+                        skills: Array.isArray(data.skills) ? data.skills.join(', ') : data.skills,
+                        templateId: data.template_id || 'standard',
+                    });
+                }
+            };
+            fetchExisting();
+        }
+    }, [editId, reset]);
+
+    const selectedTemplateId = watch("templateId");
 
     const { fields: expFields, append: appendExp, remove: removeExp } = useFieldArray({
         control,
@@ -74,6 +107,12 @@ export default function ResumeForm() {
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 sm:p-10 space-y-10">
+            {/* Template Selection */}
+            <TemplateSelector
+                selectedTemplateId={selectedTemplateId || 'standard'}
+                onSelect={(id) => setValue("templateId", id)}
+            />
+
             {/* Personal Info */}
             <section>
                 <h2 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-2 mb-6">Personal Information</h2>
@@ -121,11 +160,9 @@ export default function ResumeForm() {
                 <div className="space-y-8">
                     {expFields.map((field, index) => (
                         <div key={field.id} className="relative p-6 bg-gray-50 rounded-xl border border-gray-100">
-                            {expFields.length > 1 && (
-                                <button type="button" onClick={() => removeExp(index)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors">
-                                    <Trash2 className="h-5 w-5" />
-                                </button>
-                            )}
+                            <button type="button" onClick={() => removeExp(index)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors">
+                                <Trash2 className="h-5 w-5" />
+                            </button>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                                 <div className="space-y-1">
                                     <label className="text-sm font-medium text-gray-700">Company *</label>
