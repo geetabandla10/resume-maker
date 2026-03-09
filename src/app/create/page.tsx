@@ -1,5 +1,6 @@
 import Header from '@/components/Header';
 import ResumeForm from '@/components/ResumeForm';
+import { Suspense } from 'react';
 
 export default function CreateResumePage() {
     return (
@@ -16,7 +17,13 @@ export default function CreateResumePage() {
                     </div>
 
                     <div className="bg-white shadow-xl shadow-gray-200/50 rounded-2xl overflow-hidden border border-gray-100">
-                        <ResumeForm />
+                        <Suspense fallback={
+                            <div className="p-12 flex justify-center items-center">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                            </div>
+                        }>
+                            <ResumeForm />
+                        </Suspense>
                     </div>
                 </div>
             </main>
