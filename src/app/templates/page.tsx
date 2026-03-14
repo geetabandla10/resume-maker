@@ -25,6 +25,7 @@ const SAMPLE_DATA = {
     },
     education: [
         {
+            id: 'edu-1',
             institution: 'Stanford University',
             degree: 'B.S.',
             fieldOfStudy: 'Computer Science',
@@ -35,18 +36,22 @@ const SAMPLE_DATA = {
     skills: ['React', 'TypeScript', 'Node.js', 'Python', 'AWS', 'Docker', 'GraphQL', 'PostgreSQL'],
     experience: [
         {
+            id: 'exp-1',
             company: 'Stripe',
             position: 'Senior Software Engineer',
             startDate: 'Jan 2022',
             endDate: 'Present',
             description: 'Led development of payment infrastructure\nImproved API latency by 40%',
+            bullets: [],
         },
         {
+            id: 'exp-2',
             company: 'Airbnb',
             position: 'Software Engineer',
             startDate: 'Jun 2020',
             endDate: 'Dec 2021',
             description: 'Built real-time booking features\nMentored junior engineers',
+            bullets: [],
         },
     ],
     generated_content: {
