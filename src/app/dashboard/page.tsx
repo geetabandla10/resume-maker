@@ -56,7 +56,7 @@ export default async function Dashboard() {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {resumes.map((resume) => (
+                        {resumes.map((resume: any) => (
                             <div
                                 key={resume.id}
                                 className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden group"
