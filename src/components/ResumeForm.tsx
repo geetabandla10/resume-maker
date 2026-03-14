@@ -44,29 +44,43 @@ export default function ResumeForm() {
     const editId = searchParams.get('edit');
 
     useEffect(() => {
-        const checkUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            setUser(user);
+        if (!supabase) {
             setIsCheckingUser(false);
+            return;
+        }
+
+        const checkUser = async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                setUser(user);
+            } catch (e) {
+                console.error('Error fetching user:', e);
+            } finally {
+                setIsCheckingUser(false);
+            }
         };
         checkUser();
 
         if (editId) {
             const fetchExisting = async () => {
-                const { data, error } = await supabase
-                    .from('resumes')
-                    .select('*')
-                    .eq('id', editId)
-                    .single();
+                try {
+                    const { data, error } = await supabase
+                        .from('resumes')
+                        .select('*')
+                        .eq('id', editId)
+                        .single();
 
-                if (data && !error) {
-                    reset({
-                        personalInfo: data.personal_info,
-                        experience: data.experience || [],
-                        education: data.education || [],
-                        skills: Array.isArray(data.skills) ? data.skills.join(', ') : data.skills,
-                        templateId: data.template_id || 'standard',
-                    });
+                    if (data && !error) {
+                        reset({
+                            personalInfo: data.personal_info,
+                            experience: data.experience || [],
+                            education: data.education || [],
+                            skills: Array.isArray(data.skills) ? data.skills.join(', ') : data.skills,
+                            templateId: data.template_id || 'standard',
+                        });
+                    }
+                } catch (e) {
+                    console.error('Error fetching existing resume:', e);
                 }
             };
             fetchExisting();

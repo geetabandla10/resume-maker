@@ -12,10 +12,20 @@ export function AuthButton() {
     const supabase = createClient();
 
     useEffect(() => {
-        const checkUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            setUser(user);
+        if (!supabase) {
             setLoading(false);
+            return;
+        }
+
+        const checkUser = async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                setUser(user);
+            } catch (e) {
+                console.error('Error fetching user:', e);
+            } finally {
+                setLoading(false);
+            }
         };
 
         checkUser();
@@ -28,7 +38,7 @@ export function AuthButton() {
         return () => {
             subscription.unsubscribe();
         };
-    }, [supabase.auth]);
+    }, [supabase]);
 
     const handleSignIn = async () => {
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
