@@ -147,43 +147,12 @@ export default function ResumePage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-            <Header />
-
-            <main className="flex-1 py-8 print:py-0">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-[1400px]">
-                    {/* Page header */}
-                    <div className="flex items-center justify-between mb-8 print:hidden">
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={() => router.push('/create')}
-                                className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
-                            >
-                                <ArrowLeft className="h-4 w-4" />
-                                Back to Builder
-                            </button>
-                            <div className="h-4 w-px bg-gray-200" />
-                            <h1 className="text-2xl font-bold text-gray-900">Your Resume</h1>
-                        </div>
-                    </div>
-
-                    {/* Live editor */}
-                    <div className="print:hidden">
-                        <LivePreviewEditor
-                            initialData={resumeData}
-                            initialTemplateId={templateId}
-                            resumeId={id}
-                        />
-                    </div>
-
-                    {/* Print only area */}
-                    <div className="hidden print:block">
-                        <div id="resume-printable-area">
-                            {/* Template will be rendered inside LivePreviewEditor already */}
-                        </div>
-                    </div>
-                </div>
-            </main>
+        <div className="h-screen w-full bg-slate-50 font-sans overflow-hidden">
+            <LivePreviewEditor
+                initialData={resumeData}
+                initialTemplateId={templateId}
+                resumeId={id}
+            />
         </div>
     );
 }

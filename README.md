@@ -34,7 +34,9 @@ A full-stack web application built with Next.js that helps users create highly p
      experience jsonb not null,
      education jsonb not null,
      skills text[] not null,
-     generated_content jsonb
+     generated_content jsonb,
+     template_id text,
+     user_id uuid references auth.users(id)
    );
    ```
 

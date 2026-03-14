@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { openai } from '@/lib/openRouterClient';
 import { supabase } from '@/lib/supabaseClient';
+import { createClient } from '@/lib/supabaseServer';
 import { resumeFormSchema } from '@/types/resume';
 
 export const dynamic = 'force-dynamic';
@@ -110,21 +111,54 @@ Please process this data and provide the JSON output. If Experience is "None pro
             throw new Error('Failed to parse AI response as JSON');
         }
 
+        // Get current user if authenticated
+        const serverSupabase = await createClient();
+        const { data: { user } } = await serverSupabase.auth.getUser();
+
         // Save to Supabase
-        const { data: insertedData, error: dbError } = await supabase
+        // Prepare insert data - removing user_id and template_id if they don't exist in schema
+        // For now, let's keep it simple to ensure the resume is at least saved
+        const insertData: any = {
+            personal_info: parsedData.personalInfo,
+            experience: parsedData.experience,
+            education: parsedData.education,
+            skills: parsedData.skills.split(',').map(s => s.trim()),
+            generated_content: generatedResume,
+        };
+
+        // Try to add these but handle schema mismatch if needed
+        // Note: For a production app, the schema should be synced.
+        // We add them here but if they cause issues, we might need to remove them.
+        try {
+            insertData.template_id = parsedData.templateId;
+            if (user?.id) insertData.user_id = user.id;
+        } catch (e) {
+            console.warn('Metadata fields might be missing from schema:', e);
+        }
+
+        // Initial insert attempt
+        let { data: insertedData, error: dbError } = await supabase
             .from('resumes')
-            .insert([
-                {
-                    personal_info: parsedData.personalInfo,
-                    experience: parsedData.experience,
-                    education: parsedData.education,
-                    skills: parsedData.skills.split(',').map(s => s.trim()),
-                    template_id: parsedData.templateId,
-                    generated_content: generatedResume
-                }
-            ])
+            .insert([insertData])
             .select('id')
             .single();
+
+        // If it fails with a column missing error, retry without metadata fields
+        if (dbError && dbError.code === 'PGRST204') {
+            console.warn('Metadata columns missing, retrying without them...');
+            const simpleData = { ...insertData };
+            delete simpleData.template_id;
+            delete simpleData.user_id;
+
+            const retry = await supabase
+                .from('resumes')
+                .insert([simpleData])
+                .select('id')
+                .single();
+            
+            insertedData = retry.data;
+            dbError = retry.error;
+        }
 
         if (dbError) {
             console.error('Supabase Error:', dbError);

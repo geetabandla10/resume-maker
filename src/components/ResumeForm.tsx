@@ -12,8 +12,10 @@ import TemplateSelector from './TemplateSelector';
 export default function ResumeForm() {
     const router = useRouter();
     const supabase = createClient();
+    const [user, setUser] = useState<any>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isCheckingUser, setIsCheckingUser] = useState(true);
 
     const {
         register,
@@ -42,6 +44,13 @@ export default function ResumeForm() {
     const editId = searchParams.get('edit');
 
     useEffect(() => {
+        const checkUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setUser(user);
+            setIsCheckingUser(false);
+        };
+        checkUser();
+
         if (editId) {
             const fetchExisting = async () => {
                 const { data, error } = await supabase
@@ -62,7 +71,7 @@ export default function ResumeForm() {
             };
             fetchExisting();
         }
-    }, [editId, reset]);
+    }, [editId, reset, supabase]);
 
     const selectedTemplateId = watch("templateId");
 
@@ -104,6 +113,34 @@ export default function ResumeForm() {
             setIsGenerating(false);
         }
     };
+
+    if (isCheckingUser) {
+        return (
+            <div className="flex h-[60vh] items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div className="flex flex-col items-center justify-center h-[60vh] text-center p-6">
+                <div className="bg-indigo-50 p-6 rounded-2xl mb-6">
+                    <Sparkles className="h-12 w-12 text-indigo-600 mx-auto" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Login Required</h2>
+                <p className="text-gray-600 max-w-md mb-8">
+                    To use our AI-powered resume builder and save your progress, please sign in with your Google account.
+                </p>
+                <button
+                    onClick={() => router.push('/login')}
+                    className="rounded-full bg-indigo-600 px-8 py-3 text-white font-semibold shadow-lg hover:bg-indigo-700 transition-all"
+                >
+                    Sign in to Continue
+                </button>
+            </div>
+        );
+    }
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 sm:p-10 space-y-10">

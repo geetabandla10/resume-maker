@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { FileText, Sparkles } from 'lucide-react';
+import { AuthButton } from './AuthButton';
 
 export default function Header() {
     return (
@@ -21,6 +22,9 @@ export default function Header() {
                         <Sparkles className="h-4 w-4 transition-transform group-hover:scale-110" />
                         Build Resume
                     </Link>
+                    <div className="ml-2 pl-4 border-l border-gray-200 hidden sm:block">
+                        <AuthButton />
+                    </div>
                 </nav>
             </div>
         </header>
